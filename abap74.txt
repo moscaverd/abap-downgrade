@@ -1,0 +1,52 @@
+*Declaration of a lhs-variable for a simple assignment
+DATA(text) = '...'.
+
+
+*Declaration of table work areas
+LOOP AT itab INTO DATA(wa).  
+  ...
+ENDLOOP.
+
+
+*Declaration of a helper variable
+FIND ... IN ... MATCH COUNT DATA(cnt).
+
+ 
+
+*Declaration of a result
+CALL TRANSFORMATION ... RESULT XML DATA(xml).
+
+*Declaration of actual parameters
+oref->meth( IMPORTING p1 = DATA(a1)
+            IMPORTING p2 = DATA(a2)
+            ... ).
+ 
+
+
+*Declaration of reference variables for factory methods
+DATA(ixml)           = cl_ixml=>create( ).
+DATA(stream_factory) = ixml->create_stream_factory( ).
+DATA(document)       = ixml->create_document( ).
+ 
+
+
+
+
+*Field Symbols
+READ TABLE itab ASSIGNING FIELD-SYMBOL(<line>) ...
+
+
+
+
+*Reading the column with value 13 with chained table expressions
+DATA(num2) = itab[ 2 ]-col2[ 1 ][ 2 ]-col1.
+
+
+
+ 
+*Table with multiple components
+DATA(o_data_multi_comp) =
+  NEW tt_data( ( kunnr = '123' name1 = 'ABCD' ort01 = 'LV' land1 = 'NV' )
+               ( kunnr = '456' name1 = 'XYZ'  ort01 = 'LA' land1 = 'CA' )
+              ).
+
