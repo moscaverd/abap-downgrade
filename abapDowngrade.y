@@ -61,6 +61,8 @@
 %start code_start
 
 %type <sval> start_heading
+%type <sval> method_declaration
+%type <sval> report_declaration
 %type <sval> identifier
 %type <sval> block
 %type <dval> value
@@ -75,9 +77,10 @@
 
 code_start : start_heading{} ;
 
-start_heading: KW_METHOD identifier DOT block KW_ENDMETHOD DOT{printf("Declaracao METHOD %s\n", $2);}
-	     | KW_REPORT identifier DOT block {printf("Declaracao REPORT %s\n", $2);} ;
+start_heading: start_heading start_heading | method_declaration | report_declaration | ;
 
+method_declaration : KW_METHOD identifier DOT block KW_ENDMETHOD DOT{printf("Declaracao METHOD %s\n", $2);};
+report_declaration : KW_REPORT identifier DOT block {printf("Declaracao REPORT %s\n", $2);};
 
 block : variable_declaration block { }
       | statement block { } 
