@@ -12,6 +12,8 @@
 
 %}
 
+%error-verbose
+
 %union {
 	 double dval;
        int    ival;
