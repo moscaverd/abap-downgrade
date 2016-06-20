@@ -9,6 +9,7 @@
 
    */
 #include <stdio.h>
+#include "string.h"
 
 %}
 
@@ -22,12 +23,12 @@
 }
 
 %token <cval> ASSIGNMENT 
-%token <ival> DIGSEQ
+%token <sval> DIGSEQ
 %token <cval> DOT 
 %token <cval> LPAREN 
 %token <cval> MINUS 
 %token <cval> PLUS 
-%token <dval> REALNUMBER 
+%token <sval> REALNUMBER 
 %token <cval> RPAREN 
 %token <sval> IDENTIFIER 
 %token <sval> KW_METHOD
@@ -65,19 +66,20 @@
 %type <sval> report_declaration
 %type <sval> identifier
 %type <sval> block
-%type <dval> value
-%type <dval> statement
-%type <dval> assignment_statement
-%type <dval> unsigned_number 
-%type <ival> unsigned_integer
-%type <dval> unsigned_real
+%type <sval> value
+%type <sval> statement
+%type <sval> assignment_statement
+%type <sval> unsigned_number 
+%type <sval> unsigned_integer
+%type <sval> unsigned_real
 %type <sval> variable_declaration 
-%type <dval> expression
+%type <sval> expression
+%type <cval> sign
 %%
 
 code_start : start_heading{} ;
 
-start_heading: start_heading start_heading | method_declaration | report_declaration | ;
+start_heading: start_heading start_heading | method_declaration method_declaration | report_declaration | ;
 
 method_declaration : KW_METHOD identifier DOT block KW_ENDMETHOD DOT{printf("Declaracao METHOD %s\n", $2);};
 report_declaration : KW_REPORT identifier DOT block {printf("Declaracao REPORT %s\n", $2);};
@@ -86,8 +88,8 @@ block : variable_declaration block { }
       | statement block { } 
       | ;
 
-variable_declaration : KW_DATA identifier KW_TYPE identifier DOT {printf("DECLARACAO V: %s TYPE %s", $2, $4);} 
-		     | KW_DATA LPAREN identifier RPAREN ASSIGNMENT expression DOT {printf("DATA %s TYPE any.\n%s = %s.",$3 ,$3, $6);};
+variable_declaration : KW_DATA identifier KW_TYPE identifier DOT {printf("DECLARACAO V: %s TYPE %s\n", $2, $4);} 
+		     | KW_DATA LPAREN identifier RPAREN ASSIGNMENT expression DOT {printf("DECLARACAO V: %s TYPE %s\n", $3, $6);};
 
 in_line_declaration: KW_DATA LPAREN identifier RPAREN {printf("DATA %s TYPE any.", $3);};
 
@@ -125,31 +127,34 @@ parameter_type: KW_EXPORTING
 
 read_table_statement: KW_READ KW_TABLE identifier KW_INTO variable_identifier KW_INDEX DIGSEQ DOT { };
 
-read_table_in_line: identifier LCOLCH DIGSEQ RCOLCH {printf("READ TABLE %s INTO AFF INDEX %d", $1, $3);};
+read_table_in_line: identifier LCOLCH DIGSEQ RCOLCH {printf("READ TABLE %s INTO AFF INDEX %s", $1, $3);};
 
 table_declaration: KW_VALUE identifier LPAREN fields_filled RPAREN{ };
 
 fields_filled: LPAREN identifier RPAREN fields_filled {printf("APPEND %s TO table?.", $2);}
              | ; 
 
-expression : value { $$=$1; } 
+expression : value
            | method_call
            | read_table_in_line 
            | table_declaration;
 
-value : value sign value { }
-      | unsigned_number { $$=$1; } 
+value : value sign value {
+                            $$ = strcat($1, (char[4]) { ' ', (char) $2, ' ','\0' });
+                            $$ = strcat($$, $3);
+                         }
+      | unsigned_number { $$=$1; };
       | identifier;
 
-unsigned_number : unsigned_integer { $$=$1; }
-                | unsigned_real { $$=$1; } ;
+unsigned_number : unsigned_integer 
+                | unsigned_real ;
 
 unsigned_integer : DIGSEQ { $$=$1; };
 
 unsigned_real : REALNUMBER { $$=$1; } ;
 
-sign : PLUS {  } 
-     | MINUS {  } ;
+sign : PLUS 
+     | MINUS ;
 
 identifier : IDENTIFIER { $$ = $1; } ;
 
@@ -173,4 +178,13 @@ main ()
 {
   do { yyparse(); }
   while (!feof(yyin));
+}
+
+char* concat(char *s1, char *s2)
+{
+    char *result = malloc(strlen(s1)+strlen(s2)+1);//+1 for the zero-terminator
+    //in real code you would check for errors in malloc here
+    strcpy(result, s1);
+    strcat(result, s2);
+    return result;
 }

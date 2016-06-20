@@ -46,15 +46,15 @@ NQUOTE    [^']
                           };
 "="			return(ASSIGNMENT);
 [0-9]+		{ 
-                    yylval.dval=atol(yytext);
+                    yylval.sval=strdup(yytext);
                     return(DIGSEQ);
                   }
 "."			return(DOT);
 "("			return(LPAREN);
-"-"			return(MINUS);
-"+"			return(PLUS);
+"-"			{ yylval.cval='-'; return(MINUS); }
+"+"			{ yylval.cval='+'; return(PLUS); }
 [0-9]+"."[0-9]+	{
-                    yylval.dval=atol(yytext);
+                    yylval.sval=strdup(yytext);
                     return(REALNUMBER);
                   }
 ")"			return(RPAREN);
