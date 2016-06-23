@@ -1,21 +1,22 @@
-READ TABLE X INTO DATA(z) INDEX 2.
+READ TABLE tb INTO DATA(line) INDEX 2.
 
-DATA(a)=value d((f)(x)).
+DATA(line) = tb[3].
 
-x = 1+2.
+DATA x TYPE i.
+x = 1 + 2.
 
-CALL TRANSFORMATION abap RESULT XML DATA(aa).
+CALL TRANSFORMATION source_trans RESULT XML DATA(result_trans).
 
-REPORT k.
-METHOD x.
+REPORT repo_name.
 
+METHOD method_name.
 
-oref->meth( IMPORTING p1 = DATA(a1)
-            EXPORTING p2 = DATA(a2)
-            IMPORTING p2 = a2
-).
+  oref->meth( IMPORTING param1 = DATA(valueA)
+              EXPORTING param2 = DATA(valueB)
+              IMPORTING param3 = var_x
+              ).
 
-FIND x IN z MATCH COUNT DATA(cnt).
+FIND value_ IN data_ MATCH COUNT DATA(cnt).
 
 LOOP AT itab INTO DATA(wa).
 
@@ -24,3 +25,5 @@ ENDLOOP.
 LOOP AT itab INTO wa.
 ENDLOOP.
 ENDMETHOD.
+
+DATA(a)=value d((f)(x)).

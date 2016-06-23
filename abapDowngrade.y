@@ -89,6 +89,8 @@ char preinst[4096];
 %type <sval> table_declaration
 %type <sval> method_params
 %type <sval> parameter_type
+%type <sval> abap_statement
+%type <sval> read_table_in_line
 %%
 
 code_start : start_heading{ printf("%s", $1); } ;
@@ -104,7 +106,7 @@ abap_statement: method_declaration | report_declaration | variable_declaration |
 
 method_declaration : KW_METHOD identifier DOT block KW_ENDMETHOD DOT{
     char *output = malloc(4096);
-    sprintf(output, "METHOD %s.\n%s\nENDMETHOD.", $2, $4);
+    sprintf(output, "METHOD %s.\n%s\nENDMETHOD.\n", $2, $4);
     $$ = output;
 };
 
@@ -128,13 +130,14 @@ block : variable_declaration block {
 
 variable_declaration : KW_DATA identifier KW_TYPE identifier DOT {
                                                                     char *output = malloc(4096);
-                                                                    sprintf(output, "DATA %s TYPE %s.", $2, $4);
+                                                                    sprintf(output, "DATA %s TYPE %s.\n", $2, $4);
                                                                     $$ = output;
                                                                  }
 		     | KW_DATA LPAREN identifier RPAREN ASSIGNMENT expression DOT {
                                                                     char *output = malloc(4096);
-                                                                    sprintf(output, "DATA %s TYPE any.\n%s = %s.\n", $3, $3, $6);
+                                                                    sprintf(output, "%sDATA %s TYPE any.\n%s = %s.\n", preinst, $3, $3, $6);
                                                                     $$ = output;
+                                                                    preinst[0] = 0;
                                                                  }
 
 in_line_declaration: KW_DATA LPAREN identifier RPAREN{
@@ -218,10 +221,15 @@ read_table_statement: KW_READ KW_TABLE identifier KW_INTO variable_identifier KW
   sprintf(output, "%sREAD TABLE %s INTO %s INDEX %s.\n", preinst, $3, $5, $7);
   $$ = output;
   preinst[0] = 0;
-
 };
 
-read_table_in_line: identifier LCOLCH DIGSEQ RCOLCH {};
+read_table_in_line: identifier LCOLCH DIGSEQ RCOLCH
+{
+  sprintf(preinst, "%sDATA _%s TYPE any.\nREAD TABLE %s INTO _%s INDEX %s.\n", preinst, $1, $1, $1, $3);
+  char *output = malloc(4096);
+  sprintf(output, "_%s", $1);
+  $$ = output;
+};
 
 table_declaration: KW_VALUE identifier LPAREN fields_filled RPAREN {
                                                                         char *output = malloc(4096);
