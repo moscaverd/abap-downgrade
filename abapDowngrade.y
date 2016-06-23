@@ -102,9 +102,17 @@ start_heading: start_heading start_heading {
 
 abap_statement: method_declaration | report_declaration | variable_declaration | in_line_declaration | statement;
 
-method_declaration : KW_METHOD identifier DOT block KW_ENDMETHOD DOT{ };
+method_declaration : KW_METHOD identifier DOT block KW_ENDMETHOD DOT{
+    char *output = malloc(4096);
+    sprintf(output, "METHOD %s.\n%s\nENDMETHOD.", $2, $4);
+    $$ = output;    
+};
 
-report_declaration : KW_REPORT identifier DOT block { };
+report_declaration : KW_REPORT identifier DOT block { 
+    char *output = malloc(4096);
+    sprintf(output, "REPORT %s.\n%s", $2, $4);
+    $$ = output;
+};
 
 block : variable_declaration block {
                                         char *output = malloc(4096);
@@ -159,7 +167,7 @@ variable_identifier: identifier
 loop_block: block KW_ENDLOOP DOT 
 {
     char *output = malloc(4096);
-    sprintf( output, "%s\nENDLOOP.\n", $1);
+    sprintf( output, "%s\nENDLOOP.", $1);
     $$ = output;
 };            
 
