@@ -25,5 +25,3 @@ ENDLOOP.
 LOOP AT itab INTO wa.
 ENDLOOP.
 ENDMETHOD.
-
-DATA(a)=value d((f)(x)).
