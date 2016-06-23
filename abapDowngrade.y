@@ -11,14 +11,18 @@
 #include <stdio.h>
 #include "string.h"
 
+#define eos(s) ((s)+strlen(s))
+
+char *preinst;
+
 %}
 
 %error-verbose
 
 %union {
 	 double dval;
-       int    ival;
-       char   cval;
+     int    ival;
+     char   cval;
 	 char   *sval;
 }
 
@@ -77,41 +81,88 @@
 %type <sval> variable_declaration 
 %type <sval> expression
 %type <cval> sign
+%type <sval> loop_statement
+%type <sval> find_statement
+%type <sval> transformation_statement
+%type <sval> method_call
+%type <sval> read_table_statement
+%type <sval> loop_block
+%type <sval> fields_filled
+%type <sval> table_declaration
 %%
 
-code_start : start_heading{} ;
+code_start : start_heading{ printf("%s", $1); } ;
 
-start_heading: start_heading start_heading | method_declaration method_declaration | report_declaration | ;
+start_heading: start_heading start_heading {
+                                                char *output = malloc(4096);
+                                                sprintf(output, "%s %s", $1, $2);
+                                                $$ = output;
+                                           };
+            | abap_statement ;
+
+abap_statement: method_declaration | report_declaration | variable_declaration | in_line_declaration | statement;
 
 method_declaration : KW_METHOD identifier DOT block KW_ENDMETHOD DOT{ };
 
 report_declaration : KW_REPORT identifier DOT block { };
 
-block : variable_declaration block { }
-      | statement block { } 
-      | ;
+block : variable_declaration block {
+                                        char *output = malloc(4096);
+                                        sprintf(output, "%s\n%s", $1, $2);
+                                        $$ = output;  
+                                   }
+      | statement block {   
+                            char *output = malloc(4096);
+                            sprintf(output, "%s\n%s", $1, $2);
+                            $$ = output;      
+                        } 
+      | { $$ = ""; };
 
-variable_declaration : KW_DATA identifier KW_TYPE identifier DOT {} 
-		     | KW_DATA LPAREN identifier RPAREN ASSIGNMENT expression DOT {printf("DATA %s TYPE any.\n %s = %s\n", $3, $3, $6);};
+variable_declaration : KW_DATA identifier KW_TYPE identifier DOT { 
+                                                                    char *output = malloc(4096);
+                                                                    sprintf(output, "DATA %s TYPE %s.", $2, $4);
+                                                                    $$ = output;
+                                                                 }
+		     | KW_DATA LPAREN identifier RPAREN ASSIGNMENT expression DOT { 
+                                                                    char *output = malloc(4096);
+                                                                    sprintf(output, "DATA %s TYPE any.\n%s = %s.\n", $3, $3, $6);
+                                                                    $$ = output;
+                                                                 }
 
-in_line_declaration: KW_DATA LPAREN identifier RPAREN {printf("DATA %s TYPE any.\n", $3); 
-                 				       $$ = $3;};
+in_line_declaration: KW_DATA LPAREN identifier RPAREN{ 
+                                                        //*preinst = malloc(4096);
+                                                        //sprintf(preinst, "DATA %s TYPE any.\n", $3);
+       
+                                                        char *output = malloc(4096);
+                                                        sprintf(output, "%s", $3);
+                                                        $$ = output;
+                                                     } 
 
-statement : assignment_statement{}
-          | loop_statement{}
-          | find_statement{}
-          | transformation_statement {}
-          | method_call {}
-          | read_table_statement {};
+statement : assignment_statement
+          | loop_statement
+          | find_statement
+          | transformation_statement 
+          | method_call
+          | read_table_statement;
 
 assignment_statement : identifier ASSIGNMENT expression DOT {} ;
 
-loop_statement: KW_LOOP KW_AT identifier KW_INTO variable_identifier DOT loop_block {printf("LOOP AT %s INTO %s.", $3, $5);};
+loop_statement: KW_LOOP KW_AT identifier KW_INTO variable_identifier DOT loop_block 
+{
+    char *output = malloc(4096);
+    sprintf( output, "LOOP AT %s INTO %s.\n%s", $3, $5, $7);
+    $$ = output;
+};
 
-variable_identifier: identifier { }
+variable_identifier: identifier 
                    | in_line_declaration { $$ = $1; };
 
-loop_block: block KW_ENDLOOP DOT { };            
+loop_block: block KW_ENDLOOP DOT 
+{
+    char *output = malloc(4096);
+    sprintf( output, "%s\nENDLOOP.", $1);
+    $$ = output;
+};            
 
 find_statement: KW_FIND identifier KW_IN identifier KW_MATCH KW_COUNT variable_identifier DOT {printf("FIND %s IN %s MATCH COUNT %s.", $2, $4, $7);};
 
@@ -130,9 +181,17 @@ read_table_statement: KW_READ KW_TABLE identifier KW_INTO variable_identifier KW
 
 read_table_in_line: identifier LCOLCH DIGSEQ RCOLCH {};
 
-table_declaration: KW_VALUE identifier LPAREN fields_filled RPAREN{ };
+table_declaration: KW_VALUE identifier LPAREN fields_filled RPAREN {
+                                                                        char *output = malloc(4096);
+                                                                        sprintf(output, "VALUE %s(%s).", $2, $4);
+                                                                        $$ = output;
+                                                                   };
 
-fields_filled: LPAREN identifier RPAREN fields_filled {printf("APPEND %s TO table.\n", $2);}
+fields_filled: LPAREN identifier RPAREN fields_filled {
+                                                        char *output = malloc(4096);
+                                                        sprintf(output, "APPEND %s TO %s.", $4, $2);
+                                                        $$ = output; 
+                                                      }
              | ; 
 
 expression : value
@@ -141,23 +200,24 @@ expression : value
            | table_declaration;
 
 value : value sign value {
-                            $$ = strcat($1, (char[4]) { ' ',(char) $2,' ','\0' });
-                            $$ = strcat($$, $3);
+                            char *output = malloc(4096);
+                            sprintf(output, "%s %s %s", $1, $2, $3);
+                            $$ = output;  
                          }
-      | unsigned_number { $$=$1; };
+      | unsigned_number;
       | identifier;
 
 unsigned_number : unsigned_integer 
                 | unsigned_real ;
 
-unsigned_integer : DIGSEQ { $$=$1; };
+unsigned_integer : DIGSEQ;
 
-unsigned_real : REALNUMBER { $$=$1; } ;
+unsigned_real : REALNUMBER;
 
 sign : PLUS 
      | MINUS ;
 
-identifier : IDENTIFIER { $$ = $1; } ;
+identifier : IDENTIFIER;
 
 %%
 
@@ -187,5 +247,12 @@ char* concat(char *s1, char *s2)
     //in real code you would check for errors in malloc here
     strcpy(result, s1);
     strcat(result, s2);
+    return result;
+}
+
+char* stringfy(char *s1)
+{
+    char *result = malloc(strlen(s1)+1);//+1 for the zero-terminator
+    strcpy(result, s1);
     return result;
 }
