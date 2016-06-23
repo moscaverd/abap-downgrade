@@ -10,11 +10,9 @@
    */
 #include <stdio.h>
 #include "string.h"
-
+//#include "abapDowngrade.h"
 #define eos(s) ((s)+strlen(s))
-
-char *preinst;
-
+char preinst[4096];
 %}
 
 %error-verbose
@@ -89,6 +87,8 @@ char *preinst;
 %type <sval> loop_block
 %type <sval> fields_filled
 %type <sval> table_declaration
+%type <sval> method_params
+%type <sval> parameter_type
 %%
 
 code_start : start_heading{ printf("%s", $1); } ;
@@ -130,9 +130,7 @@ variable_declaration : KW_DATA identifier KW_TYPE identifier DOT {
                                                                  }
 
 in_line_declaration: KW_DATA LPAREN identifier RPAREN{ 
-                                                        //*preinst = malloc(4096);
-                                                        //sprintf(preinst, "DATA %s TYPE any.\n", $3);
-       
+                                                        sprintf(preinst, "%sDATA %s TYPE any.\n", preinst, $3);
                                                         char *output = malloc(4096);
                                                         sprintf(output, "%s", $3);
                                                         $$ = output;
@@ -150,31 +148,49 @@ assignment_statement : identifier ASSIGNMENT expression DOT {} ;
 loop_statement: KW_LOOP KW_AT identifier KW_INTO variable_identifier DOT loop_block 
 {
     char *output = malloc(4096);
-    sprintf( output, "LOOP AT %s INTO %s.\n%s", $3, $5, $7);
+    sprintf( output, "%sLOOP AT %s INTO %s.\n%s", preinst, $3, $5, $7);
     $$ = output;
+    preinst[0] = 0;
 };
 
 variable_identifier: identifier 
-                   | in_line_declaration { $$ = $1; };
+                   | in_line_declaration;
 
 loop_block: block KW_ENDLOOP DOT 
 {
     char *output = malloc(4096);
-    sprintf( output, "%s\nENDLOOP.", $1);
+    sprintf( output, "%s\nENDLOOP.\n", $1);
     $$ = output;
 };            
 
-find_statement: KW_FIND identifier KW_IN identifier KW_MATCH KW_COUNT variable_identifier DOT {printf("FIND %s IN %s MATCH COUNT %s.", $2, $4, $7);};
+find_statement: KW_FIND identifier KW_IN identifier KW_MATCH KW_COUNT variable_identifier DOT {
+
+    char *output = malloc(4096);
+    sprintf(output, "%sFIND %s IN %s MATCH COUNT %s.\n", preinst, $2, $4, $7);
+    $$ = output;    
+    preinst[0] = 0;
+};
 
 transformation_statement: KW_CALL KW_TRANSFORMATION identifier KW_RESULT KW_XML variable_identifier DOT {printf("CALL TRANSFORMATION %s RESULT XML %s.", $3, $6);};
 
-method_call: identifier KW_METHSIGN identifier LPAREN method_params RPAREN DOT { };
+method_call: identifier KW_METHSIGN identifier LPAREN method_params RPAREN DOT { 
+    char *output = malloc(4096);
+    sprintf(output, "%s%s->%s(\n%s).\n", preinst, $1, $3, $5);
+    $$ = output;    
+    preinst[0] = 0;
+};
 
-method_params: parameter_type identifier ASSIGNMENT variable_identifier method_params { }
-             | ;
+method_params: parameter_type identifier ASSIGNMENT variable_identifier method_params 
+{
+    char *output = malloc(4096);
+    sprintf(output, "%s %s = %s\n%s", $1, $2, $4, $5);
+    $$ = output;    
+    
+}
+             | { $$ = ""; } ;
 
-parameter_type: KW_EXPORTING
-              | KW_IMPORTING
+parameter_type: KW_EXPORTING { $$ = "EXPORTING"; }
+              | KW_IMPORTING { $$ = "IMPORTING"; }
               |;
 
 read_table_statement: KW_READ KW_TABLE identifier KW_INTO variable_identifier KW_INDEX DIGSEQ DOT {printf("READ TABLE %s INTO %s INDEX %s.", $3, $5, $7); };
@@ -222,7 +238,6 @@ identifier : IDENTIFIER;
 %%
 
 #include <stdio.h>
-
 extern FILE *yyin;
 
 int yywrap()
@@ -241,18 +256,3 @@ main ()
   while (!feof(yyin));
 }
 
-char* concat(char *s1, char *s2)
-{
-    char *result = malloc(strlen(s1)+strlen(s2)+1);//+1 for the zero-terminator
-    //in real code you would check for errors in malloc here
-    strcpy(result, s1);
-    strcat(result, s2);
-    return result;
-}
-
-char* stringfy(char *s1)
-{
-    char *result = malloc(strlen(s1)+1);//+1 for the zero-terminator
-    strcpy(result, s1);
-    return result;
-}
