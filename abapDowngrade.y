@@ -65,6 +65,8 @@
 %type <sval> method_declaration
 %type <sval> report_declaration
 %type <sval> identifier
+%type <sval> variable_identifier
+%type <sval> in_line_declaration
 %type <sval> block
 %type <sval> value
 %type <sval> statement
@@ -81,40 +83,39 @@ code_start : start_heading{} ;
 
 start_heading: start_heading start_heading | method_declaration method_declaration | report_declaration | ;
 
-method_declaration : KW_METHOD identifier DOT block KW_ENDMETHOD DOT{printf("Declaracao METHOD %s\n", $2);};
-report_declaration : KW_REPORT identifier DOT block {printf("Declaracao REPORT %s\n", $2);};
+method_declaration : KW_METHOD identifier DOT block KW_ENDMETHOD DOT{ };
+
+report_declaration : KW_REPORT identifier DOT block { };
 
 block : variable_declaration block { }
       | statement block { } 
       | ;
 
-variable_declaration : KW_DATA identifier KW_TYPE identifier DOT {printf("DECLARACAO V: %s TYPE %s\n", $2, $4);} 
-		     | KW_DATA LPAREN identifier RPAREN ASSIGNMENT expression DOT {printf("DECLARACAO V: %s TYPE %s\n", $3, $6);};
+variable_declaration : KW_DATA identifier KW_TYPE identifier DOT {} 
+		     | KW_DATA LPAREN identifier RPAREN ASSIGNMENT expression DOT {printf("DATA %s TYPE any.\n %s = %s\n", $3, $3, $6);};
 
-in_line_declaration: KW_DATA LPAREN identifier RPAREN {printf("DATA %s TYPE any.", $3);};
+in_line_declaration: KW_DATA LPAREN identifier RPAREN {printf("DATA %s TYPE any.\n", $3); 
+                 				       $$ = $3;};
 
-statement : assignment_statement{printf("assign");}
-          | loop_statement{printf("loop");}
-          | find_statement{printf("find");}
-          | transformation_statement {printf("transformation");}
-          | method_call {printf("method call");}
-          | read_table_statement {printf("read table");};
+statement : assignment_statement{}
+          | loop_statement{}
+          | find_statement{}
+          | transformation_statement {}
+          | method_call {}
+          | read_table_statement {};
 
-assignment_statement : identifier ASSIGNMENT expression DOT
-    {
-// printf("ATRIBUI para <%s> o valor %s\n",$1,$3); 
-} ;
+assignment_statement : identifier ASSIGNMENT expression DOT {} ;
 
-loop_statement: KW_LOOP KW_AT identifier KW_INTO variable_identifier DOT loop_block { };
+loop_statement: KW_LOOP KW_AT identifier KW_INTO variable_identifier DOT loop_block {printf("LOOP AT %s INTO %s.", $3, $5);};
 
 variable_identifier: identifier { }
-                   | in_line_declaration { printf("transform setense"); };
+                   | in_line_declaration { $$ = $1; };
 
 loop_block: block KW_ENDLOOP DOT { };            
 
-find_statement: KW_FIND identifier KW_IN identifier KW_MATCH KW_COUNT variable_identifier DOT { };
+find_statement: KW_FIND identifier KW_IN identifier KW_MATCH KW_COUNT variable_identifier DOT {printf("FIND %s IN %s MATCH COUNT %s.", $2, $4, $7);};
 
-transformation_statement: KW_CALL KW_TRANSFORMATION identifier KW_RESULT KW_XML variable_identifier DOT { };
+transformation_statement: KW_CALL KW_TRANSFORMATION identifier KW_RESULT KW_XML variable_identifier DOT {printf("CALL TRANSFORMATION %s RESULT XML %s.", $3, $6);};
 
 method_call: identifier KW_METHSIGN identifier LPAREN method_params RPAREN DOT { };
 
@@ -125,13 +126,13 @@ parameter_type: KW_EXPORTING
               | KW_IMPORTING
               |;
 
-read_table_statement: KW_READ KW_TABLE identifier KW_INTO variable_identifier KW_INDEX DIGSEQ DOT { };
+read_table_statement: KW_READ KW_TABLE identifier KW_INTO variable_identifier KW_INDEX DIGSEQ DOT {printf("READ TABLE %s INTO %s INDEX %s.", $3, $5, $7); };
 
-read_table_in_line: identifier LCOLCH DIGSEQ RCOLCH {printf("READ TABLE %s INTO AFF INDEX %s", $1, $3);};
+read_table_in_line: identifier LCOLCH DIGSEQ RCOLCH {};
 
 table_declaration: KW_VALUE identifier LPAREN fields_filled RPAREN{ };
 
-fields_filled: LPAREN identifier RPAREN fields_filled {printf("APPEND %s TO table?.", $2);}
+fields_filled: LPAREN identifier RPAREN fields_filled {printf("APPEND %s TO table.\n", $2);}
              | ; 
 
 expression : value
@@ -140,7 +141,7 @@ expression : value
            | table_declaration;
 
 value : value sign value {
-                            $$ = strcat($1, (char[4]) { ' ', (char) $2, ' ','\0' });
+                            $$ = strcat($1, (char[4]) { ' ',(char) $2,' ','\0' });
                             $$ = strcat($$, $3);
                          }
       | unsigned_number { $$=$1; };
